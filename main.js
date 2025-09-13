@@ -31,9 +31,9 @@ function preload() {
     this.load.image('bomb', 'assets/bomb.png');
     this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
 
-    // Load sounds
-    this.load.audio('starSound', 'assets/soundStar.wav'); // star collection
-    this.load.audio('bombSound', 'assets/bombSound.wav'); // bomb hit
+    // Load audio
+    this.load.audio('starSound', 'assets/soundStar.wav');
+    this.load.audio('bombSound', 'assets/bombSound.wav');
 }
 
 function create() {
@@ -84,18 +84,41 @@ function create() {
     let highestScore = localStorage.getItem('highestScore') || 0;
     highestScoreText.setText('Highest Score: ' + highestScore);
 
-    // Add sounds
     starSound = this.sound.add('starSound');
     bombSound = this.sound.add('bombSound');
+
+    // ✅ Mobile touch buttons
+    let buttonSize = 80;
+    let leftButton = this.add.rectangle(70, 500, buttonSize, buttonSize, 0x0000ff, 0.5).setInteractive();
+    let rightButton = this.add.rectangle(200, 500, buttonSize, buttonSize, 0x0000ff, 0.5).setInteractive();
+    let jumpButton = this.add.rectangle(700, 500, buttonSize, buttonSize, 0x00ff00, 0.5).setInteractive();
+
+    this.mobileControls = { left: false, right: false, jump: false };
+
+    leftButton.on('pointerdown', () => this.mobileControls.left = true);
+    leftButton.on('pointerup', () => this.mobileControls.left = false);
+    leftButton.on('pointerout', () => this.mobileControls.left = false);
+
+    rightButton.on('pointerdown', () => this.mobileControls.right = true);
+    rightButton.on('pointerup', () => this.mobileControls.right = false);
+    rightButton.on('pointerout', () => this.mobileControls.right = false);
+
+    jumpButton.on('pointerdown', () => this.mobileControls.jump = true);
+    jumpButton.on('pointerup', () => this.mobileControls.jump = false);
+    jumpButton.on('pointerout', () => this.mobileControls.jump = false);
 }
 
 function update() {
     if (gameOver) return;
 
-    if (cursors.left.isDown) {
+    let moveLeft = cursors.left.isDown || this.mobileControls.left;
+    let moveRight = cursors.right.isDown || this.mobileControls.right;
+    let jump = cursors.up.isDown || this.mobileControls.jump;
+
+    if (moveLeft) {
         player.setVelocityX(-160);
         player.anims.play('left', true);
-    } else if (cursors.right.isDown) {
+    } else if (moveRight) {
         player.setVelocityX(160);
         player.anims.play('right', true);
     } else {
@@ -103,7 +126,7 @@ function update() {
         player.anims.play('turn');
     }
 
-    if (cursors.up.isDown && player.body.touching.down) {
+    if (jump && player.body.touching.down) {
         player.setVelocityY(-330);
     }
 }
@@ -129,14 +152,13 @@ function hitBomb(player, bomb) {
     player.setTint(0xff0000);
     player.anims.play('turn');
 
-    // ✅ Play bomb sound
-    bombSound.play();
-
     gameOver = true;
     gameOverText.visible = true;
     restartButton.visible = true;
     finalScoreText.setText('Final Score: ' + score);
     finalScoreText.visible = true;
+
+    bombSound.play();
 
     let highestScore = localStorage.getItem('highestScore') || 0;
     if (score > highestScore) {
